@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генератор цветовых палитр</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="toastNotification" class="toast-notification"></div>
+
+  <header class="site-header">
+    <div class="header-section header-start">
+      <div class="custom-dropdown" id="harmonyDropdown">
+        <button id="harmonyDropdownTrigger" class="dropdown-trigger-btn" type="button">
+          <svg class="select-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10"></path>
+          </svg>
+          <span id="selectedHarmonyLabel">Автоподбор</span>
+          <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div id="harmonyDropdownMenu" class="dropdown-options-menu">
+          <div class="dropdown-option-item is-selected" data-value="smart">Автоподбор</div>
+          <div class="dropdown-option-item" data-value="analogous">Аналоговая</div>
+          <div class="dropdown-option-item" data-value="contrast">Контрастная</div>
+          <div class="dropdown-option-item" data-value="triad">Триада</div>
+          <div class="dropdown-option-item" data-value="monochrome">Монохромная</div>
+          <div class="dropdown-option-item" data-value="pastel">Пастельная</div>
+          <div class="dropdown-option-item" data-value="vibrant">Яркая</div>
+          <div class="dropdown-option-item" data-value="dark">Темная</div>
+          <div class="dropdown-option-item" data-value="warm">Теплая</div>
+          <div class="dropdown-option-item" data-value="cool">Холодная</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-section header-center">
+      <button id="generatePaletteButton" class="generate-pill" title="Нажмите Пробел">
+        <span class="keyboard-key">ПРОБЕЛ</span>
+        <span class="generate-label">Новая палитра</span>
+      </button>
+    </div>
+
+    <div class="header-section header-end">
+      <div class="action-cluster">
+        <button id="undoHistoryButton" class="icon-action-btn" title="Отменить (Ctrl+Z)" disabled>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </button>
+        <button id="redoHistoryButton" class="icon-action-btn" title="Повторить (Ctrl+Y)" disabled>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="column-count-stepper">
+        <button id="decreaseColumnsButton" class="stepper-step" title="Убрать одну колонку">−</button>
+        <span id="columnsTotalCount" class="stepper-value">5</span>
+        <button id="increaseColumnsButton" class="stepper-step" title="Добавить одну колонку">+</button>
+      </div>
+
+      <button id="openPreviewButton" class="text-action-btn" title="Предпросмотр в макете сайта">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Макет</span>
+      </button>
+
+      <button id="openExportButton" class="primary-pill-btn" title="Экспорт палитры">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Экспорт</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="paletteCanvas" class="palette-canvas"></main>
+
+  <div class="canvas-floating-hint">
+    <span><strong>Пробел</strong> — новая палитра &bull; <strong>Замок</strong> — зафиксировать &bull; <strong>HEX</strong> — изменить цвет</span>
+  </div>
+
+  <div id="colorEditorModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h4>Настройка цвета</h4>
+        <button id="closeColorEditorButton" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="editor-sample-row">
+          <div id="editorColorSample" class="editor-sample-box"></div>
+          <div class="editor-sample-meta">
+            <span id="editorColorName" class="editor-sample-name"></span>
+            <span id="editorContrastRating" class="editor-sample-sub"></span>
+          </div>
+        </div>
+
+        <div class="editor-fields">
+          <div class="field-item">
+            <label>Палитра и спектр</label>
+            <input type="color" id="nativeColorPickerInput" class="full-width-color-input">
+          </div>
+
+          <div class="field-item">
+            <label for="manualHexCodeInput">HEX код</label>
+            <div class="hex-input-wrapper">
+              <span class="hex-hash">#</span>
+              <input type="text" id="manualHexCodeInput" maxlength="6" spellcheck="false" placeholder="FFFFFF">
+              <button id="applyManualHexButton" class="apply-hex-btn">Применить</button>
+            </div>
+          </div>
+
+          <div class="field-item">
+            <label>Быстрые цвета</label>
+            <div id="quickSwatchesContainer" class="quick-swatches"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shadesInspectorModal" class="modal-overlay">
+    <div class="modal-dialog shades-dialog">
+      <div class="modal-head">
+        <div>
+          <h4>Градации и яркость</h4>
+          <span id="shadesInspectorSubtitle" class="modal-caption"></span>
+        </div>
+        <button id="closeShadesInspectorButton" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div id="shadesGridContainer" class="shades-collection"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="websiteMockupModal" class="modal-overlay">
+    <div class="modal-dialog mockup-dialog">
+      <div class="modal-head">
+        <div>
+          <h4>Предпросмотр в интерфейсе</h4>
+          <span class="modal-caption">Как текущая палитра сочетается в реальном веб-дизайне</span>
+        </div>
+        <button id="closeWebsiteMockupButton" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-content mockup-content-wrapper">
+        <div id="mockupCanvasFrame" class="mockup-frame">
+          <nav class="mockup-navbar">
+            <div class="mockup-brand">Workspace</div>
+            <div class="mockup-nav-links">
+              <span>Продукт</span>
+              <span>Решения</span>
+              <span>Тарифы</span>
+              <button class="mockup-nav-button">Войти</button>
+            </div>
+          </nav>
+          <div class="mockup-hero-block">
+            <span class="mockup-chip-tag">Дизайн и аналитика</span>
+            <h1 class="mockup-main-title">Гармоничные цвета для цифровых продуктов</h1>
+            <p class="mockup-subtext">Качественные сочетания повышают доверие пользователей и подчеркивают идентичность вашего бренда.</p>
+            <div class="mockup-cta-buttons">
+              <button class="mockup-primary-cta">Начать проект</button>
+              <button class="mockup-secondary-cta">Документация</button>
+            </div>
+          </div>
+          <div class="mockup-feature-cards">
+            <div class="mockup-card">
+              <h5>Контрастность</h5>
+              <p>Высокая читаемость текста и акцентных элементов интерфейса.</p>
+            </div>
+            <div class="mockup-card">
+              <h5>Баланс тонов</h5>
+              <p>Мягкое распределение светлых и глубоких оттенков в структуре экрана.</p>
+            </div>
+            <div class="mockup-card">
+              <h5>Адаптивность</h5>
+              <p>Одинаково чисто смотрится как в светлой, так и в темной теме.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportPaletteModal" class="modal-overlay">
+    <div class="modal-dialog export-dialog">
+      <div class="modal-head">
+        <h4>Экспорт палитры</h4>
+        <button id="closeExportPaletteButton" class="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="export-format-nav">
+          <button class="export-tab-item active" data-format="css">CSS</button>
+          <button class="export-tab-item" data-format="tailwind">Tailwind</button>
+          <button class="export-tab-item" data-format="hex">HEX</button>
+          <button class="export-tab-item" data-format="json">JSON</button>
+          <button class="export-tab-item" data-format="image">PNG Картинка</button>
+        </div>
+        <div class="export-result-box">
+          <pre id="exportSnippetPre" class="code-snippet-pre"><code></code></pre>
+          <canvas id="exportImageCanvas" class="hidden-element"></canvas>
+        </div>
+        <div class="export-footer-actions">
+          <button id="copyExportContentButton" class="primary-pill-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Скопировать</span>
+          </button>
+          <button id="downloadImageButton" class="secondary-pill-btn hidden-element">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Скачать PNG</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="colornames.js"></script>
+  <script src="palette-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
