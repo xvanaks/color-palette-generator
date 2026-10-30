@@ -9,6 +9,7 @@
   let currentHarmonyMode = "smart";
   let draggedColumnIndex = null;
   let toastTimer = null;
+  let savedPalettes = [];
 
   const paletteCanvas = document.getElementById("paletteCanvas");
   const harmonyDropdown = document.getElementById("harmonyDropdown");
@@ -23,8 +24,14 @@
   const increaseColumnsButton = document.getElementById("increaseColumnsButton");
   const columnsTotalCount = document.getElementById("columnsTotalCount");
   const openPreviewButton = document.getElementById("openPreviewButton");
+  const likePaletteButton = document.getElementById("likePaletteButton");
+  const openFavoritesButton = document.getElementById("openFavoritesButton");
   const openExportButton = document.getElementById("openExportButton");
   const toastNotification = document.getElementById("toastNotification");
+
+  const favoritesModal = document.getElementById("favoritesModal");
+  const closeFavoritesModalButton = document.getElementById("closeFavoritesModalButton");
+  const favoritesListContainer = document.getElementById("favoritesListContainer");
 
   const colorEditorModal = document.getElementById("colorEditorModal");
   const closeColorEditorButton = document.getElementById("closeColorEditorButton");
@@ -126,6 +133,100 @@
     return null;
   }
 
+  function loadSavedPalettes() {
+    try {
+      const data = localStorage.getItem("palette_generator_favorites");
+      if (data) savedPalettes = JSON.parse(data);
+    } catch (e) {}
+  }
+
+  function persistSavedPalettes() {
+    try {
+      localStorage.setItem("palette_generator_favorites", JSON.stringify(savedPalettes));
+    } catch (e) {}
+  }
+
+  function getPaletteSignature(colors) {
+    return colors.map((c) => c.hex.toUpperCase()).join("-");
+  }
+
+  function isCurrentPaletteLiked() {
+    const currentSignature = getPaletteSignature(paletteColors);
+    return savedPalettes.some((p) => p.signature === currentSignature);
+  }
+
+  function updateLikeButtonState() {
+    if (isCurrentPaletteLiked()) {
+      likePaletteButton.classList.add("is-liked");
+    } else {
+      likePaletteButton.classList.remove("is-liked");
+    }
+  }
+
+  function toggleCurrentPaletteLike() {
+    const currentSignature = getPaletteSignature(paletteColors);
+    const existingIndex = savedPalettes.findIndex((p) => p.signature === currentSignature);
+
+    if (existingIndex >= 0) {
+      savedPalettes.splice(existingIndex, 1);
+      persistSavedPalettes();
+      updateLikeButtonState();
+      showToast("Палитра удалена из избранного");
+    } else {
+      const hexList = paletteColors.map((c) => c.hex);
+      const dateText = new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      savedPalettes.unshift({ colors: hexList, signature: currentSignature, date: dateText });
+      persistSavedPalettes();
+      updateLikeButtonState();
+      showToast("Палитра добавлена в избранное! ❤️");
+    }
+  }
+
+  function renderFavoritesList() {
+    if (savedPalettes.length === 0) {
+      favoritesListContainer.innerHTML = `<div class="empty-favorites-hint">Пока нет сохраненных палитр.<br>Нажмите на сердечко в шапке или на колонке!</div>`;
+      return;
+    }
+
+    favoritesListContainer.innerHTML = "";
+    savedPalettes.forEach((savedItem, index) => {
+      const card = document.createElement("div");
+      card.className = "saved-palette-card";
+
+      const barsHtml = savedItem.colors
+        .map((hex) => `<div class="saved-palette-bar" style="background-color: ${hex};"></div>`)
+        .join("");
+
+      card.innerHTML = `
+        <div class="saved-palette-bars">${barsHtml}</div>
+        <div class="saved-palette-footer">
+          <span>${savedItem.date || "Палитра"}</span>
+          <button class="delete-fav-btn" data-fav-index="${index}" title="Удалить">✕</button>
+        </div>
+      `;
+
+      card.addEventListener("click", (e) => {
+        if (e.target.closest(".delete-fav-btn")) {
+          e.stopPropagation();
+          savedPalettes.splice(index, 1);
+          persistSavedPalettes();
+          renderFavoritesList();
+          updateLikeButtonState();
+          showToast("Удалено из избранного");
+          return;
+        }
+
+        paletteColors = savedItem.colors.map((hex) => ({ hex, locked: false, name: "" }));
+        renderPalette();
+        recordHistory();
+        favoritesModal.classList.remove("is-visible");
+        showToast("Палитра загружена!");
+      });
+
+      favoritesListContainer.appendChild(card);
+    });
+  }
+
   function generateNewPalette() {
     const nextHexList = PaletteEngine.generatePalette(paletteColors, currentHarmonyMode);
 
@@ -169,6 +270,9 @@
           ` : ""}
           <button class="strip-btn" data-action="shades" data-index="${index}" title="Оттенки">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </button>
+          <button class="strip-btn like-color-btn" data-action="like-color" data-index="${index}" title="Лайкнуть">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
           <button class="strip-btn" data-action="edit" data-index="${index}" title="Настроить цвет">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
@@ -237,6 +341,7 @@
     });
 
     attachCanvasEvents();
+    updateLikeButtonState();
   }
 
   function attachCanvasEvents() {
@@ -309,6 +414,9 @@
         break;
       case "edit":
         openColorEditor(index);
+        break;
+      case "like-color":
+        toggleCurrentPaletteLike();
         break;
       case "insert":
         if (paletteColors.length < 10) {
@@ -598,6 +706,17 @@
     harmonyDropdown.classList.remove("is-open");
   });
 
+  likePaletteButton.addEventListener("click", toggleCurrentPaletteLike);
+
+  openFavoritesButton.addEventListener("click", () => {
+    renderFavoritesList();
+    favoritesModal.classList.add("is-visible");
+  });
+
+  closeFavoritesModalButton.addEventListener("click", () => {
+    favoritesModal.classList.remove("is-visible");
+  });
+
   window.addEventListener("keydown", (e) => {
     const activeTag = document.activeElement ? document.activeElement.tagName : "";
     const isEditing = activeTag === "INPUT" || activeTag === "TEXTAREA" || (document.activeElement && document.activeElement.isContentEditable);
@@ -608,6 +727,7 @@
       shadesInspectorModal.classList.remove("is-visible");
       websiteMockupModal.classList.remove("is-visible");
       exportPaletteModal.classList.remove("is-visible");
+      favoritesModal.classList.remove("is-visible");
       return;
     }
 
@@ -626,19 +746,21 @@
     }
   });
 
-  [colorEditorModal, shadesInspectorModal, websiteMockupModal, exportPaletteModal].forEach((modal) => {
+  [colorEditorModal, shadesInspectorModal, websiteMockupModal, exportPaletteModal, favoritesModal].forEach((modal) => {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) modal.classList.remove("is-visible");
     });
   });
 
   function initialize() {
+    loadSavedPalettes();
     const fromUrl = readUrl();
     if (fromUrl) {
       paletteColors = fromUrl;
     }
     renderPalette();
     recordHistory();
+    updateLikeButtonState();
   }
 
   initialize();

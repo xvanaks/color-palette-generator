@@ -965,6 +965,93 @@ select, option {
   transform: translateX(-50%) translateY(0);
 }
 
+.like-toggle-btn.is-liked {
+  color: #f43f5e !important;
+}
+
+.like-toggle-btn.is-liked svg {
+  fill: #f43f5e;
+}
+
+.strip-btn.like-color-btn.is-liked svg {
+  fill: currentColor;
+}
+
+.favorites-dialog {
+  max-width: 540px;
+}
+
+.favorites-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.saved-palette-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.saved-palette-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.saved-palette-bars {
+  display: flex;
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.saved-palette-bar {
+  flex: 1;
+  height: 100%;
+}
+
+.saved-palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.delete-fav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.delete-fav-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.empty-favorites-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  padding: 32px 16px;
+  line-height: 1.5;
+}
+
 .hidden-element {
   display: none !important;
 }
